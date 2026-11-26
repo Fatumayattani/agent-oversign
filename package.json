@@ -1,0 +1,29 @@
+{
+  "name": "agent-oversign",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Human oversight for every AI agent payment. Policy enforcement for x402 payments on Solana.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+     "scripts": {
+    "setup:wallets": "tsx scripts/setup-wallets.ts",
+    "fund:attestor": "tsx scripts/fund-attestor.ts",
+    "balances": "tsx scripts/balances.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.99.0"
+  }
+}
