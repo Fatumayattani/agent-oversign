@@ -6,7 +6,9 @@
   "scripts": {
     "merchant": "tsx src/merchant-server.ts",
     "agent:standard": "tsx src/standard-agent.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "attack:micro-drain:server": "tsx src/attacks/micro-drain-server.ts",
+    "attack:micro-drain": "tsx src/attacks/micro-drain-agent.ts"
   },
   "dependencies": {
     "@solana/kit": "^8.6.0",
