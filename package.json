@@ -12,11 +12,12 @@
   "engines": {
     "node": ">=22"
   },
-     "scripts": {
+  "scripts": {
     "setup:wallets": "tsx scripts/setup-wallets.ts",
     "fund:attestor": "tsx scripts/fund-attestor.ts",
     "balances": "tsx scripts/balances.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
+    "setup:token-accounts": "tsx scripts/create-token-accounts.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.11",
@@ -24,6 +25,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.99.0"
   }
 }
