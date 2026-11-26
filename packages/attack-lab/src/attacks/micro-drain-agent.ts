@@ -20,7 +20,7 @@ async function main(): Promise<void> {
       served += 1;
       console.log(`Page ${page}: served after payment  ${explorerTx(result.transaction ?? "")}`);
     } else {
-      console.log(`Page ${page}: not served (status ${result.status})`);
+      console.log(`Page ${page}: not served (status ${result.status}) ${result.error ?? ""}`.trim());
     }
   }
 

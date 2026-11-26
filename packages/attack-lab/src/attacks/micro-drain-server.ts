@@ -3,6 +3,7 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { ATTACK_PORT, FACILITATOR_URL, SOLANA_DEVNET, loadSigner } from "../config.js";
+import { attachLogging } from "../server-logging.js";
 
 // Attack 1: micro-drain.
 // Each page costs $0.99, just under the standard client's $1 per-payment cap,
@@ -16,6 +17,7 @@ async function main(): Promise<void> {
     SOLANA_DEVNET,
     new ExactSvmScheme(),
   );
+  attachLogging(resourceServer, "micro-drain");
 
   const app = express();
 

@@ -1,4 +1,5 @@
 import { x402Client } from "@x402/core/client";
+import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { decodePaymentResponseHeader, wrapFetchWithPayment } from "@x402/fetch";
 import { ExactSvmScheme } from "@x402/svm/exact/client";
 import { RPC_URL, loadSigner } from "./config.js";
@@ -8,6 +9,7 @@ export type PaidResult = {
   body: string;
   settled: boolean;
   transaction?: string;
+  error?: string;
 };
 
 // The standard x402 client exactly as the docs set it up, with default spend controls
@@ -21,17 +23,22 @@ export async function createStandardAgent() {
   async function pay(url: string): Promise<PaidResult> {
     const response = await fetchWithPayment(url);
     const body = await response.text();
-    const header = response.headers.get("PAYMENT-RESPONSE");
-    if (!header) {
-      return { status: response.status, body, settled: false };
+
+    const paymentResponse = response.headers.get("PAYMENT-RESPONSE");
+    if (paymentResponse) {
+      const settlement = decodePaymentResponseHeader(paymentResponse);
+      return {
+        status: response.status,
+        body,
+        settled: settlement.success,
+        transaction: settlement.transaction,
+        error: settlement.errorReason,
+      };
     }
-    const settlement = decodePaymentResponseHeader(header);
-    return {
-      status: response.status,
-      body,
-      settled: settlement.success,
-      transaction: settlement.transaction,
-    };
+
+    const paymentRequired = response.headers.get("PAYMENT-REQUIRED");
+    const error = paymentRequired ? decodePaymentRequiredHeader(paymentRequired).error : undefined;
+    return { status: response.status, body, settled: false, error };
   }
 
   return { address: agent.address, pay };
