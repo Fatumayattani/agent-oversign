@@ -12,7 +12,9 @@
     "attack:payee-swap:server": "tsx src/attacks/payee-swap-server.ts",
     "attack:payee-swap": "tsx src/attacks/payee-swap-agent.ts",
     "attack:price-creep:server": "tsx src/attacks/price-creep-server.ts",
-    "attack:price-creep": "tsx src/attacks/price-creep-agent.ts"
+    "attack:price-creep": "tsx src/attacks/price-creep-agent.ts",
+    "attack:double-charge:server": "tsx src/attacks/double-charge-server.ts",
+    "attack:double-charge": "tsx src/attacks/double-charge-agent.ts"
   },
   "dependencies": {
     "@solana/kit": "^8.6.0",
