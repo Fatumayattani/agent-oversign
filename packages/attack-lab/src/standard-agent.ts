@@ -3,7 +3,7 @@ import { createStandardAgent, explorerTx } from "./standard-client.js";
 
 // The baseline: one honest paid request with the standard x402 client.
 async function main(): Promise<void> {
-  const target = process.argv[2] ?? `${MERCHANT_URL}/weather`;
+  const target = process.argv[2] ?? `${MERCHANT_URL}/fx-rate?pair=USD-KES`;
   const agent = await createStandardAgent();
 
   console.log(`Agent ${agent.address} requesting ${target}`);
