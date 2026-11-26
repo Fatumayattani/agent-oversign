@@ -12,12 +12,20 @@ export type PaidResult = {
   error?: string;
 };
 
+export type StandardAgentOptions = {
+  // A compromised agent can switch its own limits off. The client allows it.
+  disableSpendControls?: boolean;
+};
+
 // The standard x402 client exactly as the docs set it up, with default spend controls
 // (USD-pegged assets only, $1 cap per payment).
-export async function createStandardAgent() {
+export async function createStandardAgent(options: StandardAgentOptions = {}) {
   const agent = await loadSigner("agent");
   const client = new x402Client();
   client.register("solana:*", new ExactSvmScheme(agent, { rpcUrl: RPC_URL }));
+  if (options.disableSpendControls) {
+    client.setSpendControls(false);
+  }
   const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 
   async function pay(url: string): Promise<PaidResult> {

@@ -17,7 +17,9 @@
     "attack:double-charge": "tsx src/attacks/double-charge-agent.ts",
     "attack:injection:server": "tsx src/attacks/injection-server.ts",
     "attack:injection": "tsx src/attacks/injection-agent.ts",
-    "attack:compromised-client": "tsx src/attacks/compromised-client.ts"
+    "attack:compromised-client": "tsx src/attacks/compromised-client.ts",
+    "attack:limits-off:server": "tsx src/attacks/limits-off-server.ts",
+    "attack:limits-off": "tsx src/attacks/limits-off-agent.ts"
   },
   "dependencies": {
     "@solana/kit": "^8.6.0",
