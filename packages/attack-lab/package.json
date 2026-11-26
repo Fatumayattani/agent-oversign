@@ -16,10 +16,13 @@
     "attack:double-charge:server": "tsx src/attacks/double-charge-server.ts",
     "attack:double-charge": "tsx src/attacks/double-charge-agent.ts",
     "attack:injection:server": "tsx src/attacks/injection-server.ts",
-    "attack:injection": "tsx src/attacks/injection-agent.ts"
+    "attack:injection": "tsx src/attacks/injection-agent.ts",
+    "attack:compromised-client": "tsx src/attacks/compromised-client.ts"
   },
   "dependencies": {
     "@solana/kit": "^8.6.0",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
     "@x402/core": "^2.32.0",
     "@x402/express": "^2.32.0",
     "@x402/fetch": "^2.32.0",
