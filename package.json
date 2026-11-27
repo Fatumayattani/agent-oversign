@@ -18,10 +18,14 @@
     "balances": "tsx scripts/balances.ts",
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "setup:token-accounts": "tsx scripts/create-token-accounts.ts",
-    "setup:tokens": "tsx scripts/setup-oversign-tokens.ts"
+    "setup:tokens": "tsx scripts/setup-oversign-tokens.ts",
+    "demo:servers": "concurrently -k -n merchant,creep,oversign -c green,red,cyan \"npm run merchant -w packages/attack-lab\" \"npm run attack:price-creep:server -w packages/attack-lab\" \"npm start -w apps/oversign\"",
+    "demo": "npm run oversign:demo -w packages/attack-lab",
+    "verify": "npm run verify -w apps/oversign"
   },
   "devDependencies": {
     "@types/node": "^26.6.11",
+    "concurrently": "^10.0.7",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },

@@ -1,13 +1,12 @@
 import { readAnchoredHash } from "./anchor.js";
 import { verifyRecord } from "./records.js";
-import { loadDecisions } from "./store.js";
+import { getDecision, latestDecision } from "./store.js";
 
 // Anyone with the record can check it: the hash matches the contents, the attestor
 // signed that hash, and the same hash was written to Solana.
 async function main(): Promise<void> {
   const target = process.argv[2] ?? "latest";
-  const records = loadDecisions();
-  const record = target === "latest" ? records.at(-1) : records.find((item) => item.id === target);
+  const record = target === "latest" ? await latestDecision() : await getDecision(target);
   if (!record) {
     console.log(`No decision record found for "${target}".`);
     process.exit(1);

@@ -1,67 +1,192 @@
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createClient } from "@supabase/supabase-js";
 import type { PaymentRecord } from "@agent-oversign/core";
-import { DATA_DIR } from "./config.js";
-import type { DecisionRecord } from "./records.js";
+import { SUPABASE_SECRET_KEY, SUPABASE_URL } from "./config.js";
+import type { DecisionBody, DecisionRecord } from "./records.js";
 
-// Local storage for the hackathon build. The dashboard PR moves this to Supabase.
-const PAYMENTS_FILE = `${DATA_DIR}payments.json`;
-const DECISIONS_FILE = `${DATA_DIR}decisions.jsonl`;
+// Supabase is the control plane. This service writes with the secret key, which never
+// leaves this process. The dashboard and phone sign in as the owner and can only read,
+// approve REVIEW decisions and flip the kill switch, as the database rules allow.
+const db = createClient(SUPABASE_URL(), SUPABASE_SECRET_KEY(), {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
-type StoredPayment = Omit<PaymentRecord, "amount"> & { amount: string };
-
-export function loadHistory(): PaymentRecord[] {
-  if (!existsSync(PAYMENTS_FILE)) return [];
-  const stored = JSON.parse(readFileSync(PAYMENTS_FILE, "utf8")) as StoredPayment[];
-  return stored.map((item) => ({ ...item, amount: BigInt(item.amount) }));
-}
-
-export function recordPayment(payment: PaymentRecord): void {
-  const history = loadHistory();
-  history.push(payment);
-  const stored: StoredPayment[] = history.map((item) => ({ ...item, amount: item.amount.toString() }));
-  writeFileSync(PAYMENTS_FILE, JSON.stringify(stored, null, 2));
-}
-
-export function appendDecision(record: DecisionRecord): void {
-  appendFileSync(DECISIONS_FILE, `${JSON.stringify(record)}\n`);
-}
-
-export function loadDecisions(): DecisionRecord[] {
-  if (!existsSync(DECISIONS_FILE)) return [];
-  return readFileSync(DECISIONS_FILE, "utf8")
-    .split("\n")
-    .filter((line) => line.trim().length > 0)
-    .map((line) => JSON.parse(line) as DecisionRecord);
-}
-
-export function updateDecision(id: string, update: Partial<DecisionRecord>): void {
-  const records = loadDecisions().map((record) => (record.id === id ? { ...record, ...update } : record));
-  writeFileSync(DECISIONS_FILE, records.map((record) => JSON.stringify(record)).join("\n") + "\n");
-}
-
-// Owner approvals for REVIEW decisions. An approval covers one payment: the same
-// request, payee and amount, within ten minutes.
-export type Approval = { requestKey: string; payee: string; amount: string; approvedAt: number; used: boolean };
-const approvals = new Map<string, Approval>();
+const DAY_MS = 24 * 60 * 60 * 1000;
 const APPROVAL_TTL_MS = 10 * 60 * 1000;
 
-export function addApproval(id: string, approval: Omit<Approval, "approvedAt" | "used">): void {
-  approvals.set(id, { ...approval, approvedAt: Date.now(), used: false });
+function check(error: { message: string } | null, action: string): void {
+  if (error) throw new Error(`Supabase ${action} failed: ${error.message}`);
 }
 
-export function takeApproval(requestKey: string, payee: string, amount: bigint): boolean {
-  for (const approval of approvals.values()) {
-    const fresh = Date.now() - approval.approvedAt < APPROVAL_TTL_MS;
-    if (!approval.used && fresh && approval.requestKey === requestKey && approval.payee === payee && approval.amount === amount.toString()) {
-      approval.used = true;
-      return true;
-    }
-  }
-  return false;
-}
-
-let frozen = false;
-export const isFrozen = () => frozen;
-export const setFrozen = (value: boolean) => {
-  frozen = value;
+type DecisionRow = {
+  id: string;
+  body: DecisionBody;
+  record_hash: string;
+  attestor: string;
+  signature: string;
+  anchor_transaction: string | null;
+  settlement_transaction: string | null;
 };
+
+// The record is rebuilt from body, the exact contents that were hashed and signed.
+function toRecord(row: DecisionRow): DecisionRecord {
+  return {
+    ...row.body,
+    recordHash: row.record_hash,
+    attestor: row.attestor,
+    signature: row.signature,
+    anchorTransaction: row.anchor_transaction ?? undefined,
+    settlementTransaction: row.settlement_transaction ?? undefined,
+  };
+}
+
+const DECISION_COLUMNS = "id, body, record_hash, attestor, signature, anchor_transaction, settlement_transaction";
+
+// Creates the agent's row on first start. An existing row, and its frozen flag, is kept.
+export async function ensureAgent(agent: string): Promise<void> {
+  const { error } = await db.from("agent_state").upsert({ agent }, { onConflict: "agent", ignoreDuplicates: true });
+  check(error, "agent_state upsert");
+}
+
+// Budgets and the duplicate window look back at most a day.
+export async function loadHistory(agent: string): Promise<PaymentRecord[]> {
+  const since = Date.now() - DAY_MS;
+  const { data, error } = await db
+    .from("payments")
+    .select("timestamp_ms, payee, amount, request_key")
+    .eq("agent", agent)
+    .gte("timestamp_ms", since);
+  check(error, "payments read");
+  return (data ?? []).map((row) => ({
+    timestamp: Number(row.timestamp_ms),
+    payee: row.payee as string,
+    amount: BigInt(row.amount as string),
+    requestKey: row.request_key as string,
+  }));
+}
+
+export async function recordPayment(agent: string, decisionId: string, payment: PaymentRecord): Promise<void> {
+  const { error } = await db.from("payments").insert({
+    timestamp_ms: payment.timestamp,
+    agent,
+    payee: payment.payee,
+    amount: payment.amount.toString(),
+    request_key: payment.requestKey,
+    decision_id: decisionId,
+  });
+  check(error, "payment insert");
+}
+
+export async function appendDecision(record: DecisionRecord): Promise<void> {
+  const { recordHash, attestor, signature, anchorTransaction, settlementTransaction, ...body } = record;
+  const { error } = await db.from("decisions").insert({
+    id: body.id,
+    created_at: new Date(body.timestamp).toISOString(),
+    agent: body.agent,
+    request_key: body.requestKey,
+    url: body.url,
+    decision: body.decision,
+    reasons: body.reasons,
+    payment: body.payment,
+    policy_hash: body.policyHash,
+    approved_by_owner: body.approvedByOwner,
+    record_hash: recordHash,
+    attestor,
+    signature,
+    body,
+    anchor_transaction: anchorTransaction ?? null,
+    settlement_transaction: settlementTransaction ?? null,
+  });
+  check(error, "decision insert");
+}
+
+export async function loadDecisions(limit = 100): Promise<DecisionRecord[]> {
+  const { data, error } = await db
+    .from("decisions")
+    .select(DECISION_COLUMNS)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  check(error, "decisions read");
+  return ((data ?? []) as DecisionRow[]).map(toRecord);
+}
+
+export async function getDecision(id: string): Promise<DecisionRecord | undefined> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined;
+  const { data, error } = await db.from("decisions").select(DECISION_COLUMNS).eq("id", id).maybeSingle();
+  check(error, "decision read");
+  return data ? toRecord(data as DecisionRow) : undefined;
+}
+
+export async function latestDecision(): Promise<DecisionRecord | undefined> {
+  return (await loadDecisions(1))[0];
+}
+
+export async function updateDecision(
+  id: string,
+  update: Pick<Partial<DecisionRecord>, "anchorTransaction" | "settlementTransaction">,
+): Promise<void> {
+  const columns: Record<string, string> = {};
+  if (update.anchorTransaction) columns.anchor_transaction = update.anchorTransaction;
+  if (update.settlementTransaction) columns.settlement_transaction = update.settlementTransaction;
+  if (Object.keys(columns).length === 0) return;
+  const { error } = await db.from("decisions").update(columns).eq("id", id);
+  check(error, "decision update");
+}
+
+// Owner approval through the service's owner token. The dashboard and phone insert
+// into the same table directly, as the signed-in owner.
+export async function addApproval(decisionId: string, approvedBy: string): Promise<void> {
+  const { error } = await db
+    .from("approvals")
+    .upsert({ decision_id: decisionId, approved_by: approvedBy }, { onConflict: "decision_id", ignoreDuplicates: true });
+  check(error, "approval insert");
+}
+
+type ApprovalRow = {
+  decision_id: string;
+  decisions: { request_key: string; agent: string; payment: { payee: string; amount: string } | null };
+};
+
+// One approval covers one payment: the same agent, request, payee and amount, within
+// ten minutes of approving, used once. Marking it used is a conditional update, so two
+// retries racing for the same approval cannot both get it.
+export async function takeApproval(agent: string, requestKey: string, payee: string, amount: bigint): Promise<boolean> {
+  const since = new Date(Date.now() - APPROVAL_TTL_MS).toISOString();
+  const { data, error } = await db
+    .from("approvals")
+    .select("decision_id, decisions!inner(request_key, agent, payment)")
+    .is("used_at", null)
+    .gte("approved_at", since)
+    .eq("decisions.agent", agent)
+    .eq("decisions.request_key", requestKey);
+  check(error, "approvals read");
+
+  const rows = (data ?? []) as unknown as ApprovalRow[];
+  const match = rows.find(
+    (row) => row.decisions.payment?.payee === payee && row.decisions.payment?.amount === amount.toString(),
+  );
+  if (!match) return false;
+
+  const { data: claimed, error: claimError } = await db
+    .from("approvals")
+    .update({ used_at: new Date().toISOString() })
+    .eq("decision_id", match.decision_id)
+    .is("used_at", null)
+    .select("decision_id");
+  check(claimError, "approval claim");
+  return (claimed ?? []).length === 1;
+}
+
+// Kill switch. Read fresh before every payment, so a freeze from the dashboard or
+// phone takes effect on the very next signature.
+export async function isFrozen(agent: string): Promise<boolean> {
+  const { data, error } = await db.from("agent_state").select("frozen").eq("agent", agent).maybeSingle();
+  check(error, "agent_state read");
+  return data?.frozen === true;
+}
+
+export async function setFrozen(agent: string, frozen: boolean, updatedBy: string): Promise<void> {
+  const { error } = await db
+    .from("agent_state")
+    .upsert({ agent, frozen, updated_at: new Date().toISOString(), updated_by: updatedBy }, { onConflict: "agent" });
+  check(error, "agent_state update");
+}
