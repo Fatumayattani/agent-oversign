@@ -1,0 +1,13 @@
+{
+  "name": "@agent-oversign/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "inspect:cases": "tsx src/demo/inspect-cases.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
