@@ -10,6 +10,9 @@ try {
   // No .env yet. Defaults below are used.
 }
 
+// Importing this module loads the root .env.
+export const ROOT_ENV_LOADED = true;
+
 export const SOLANA_DEVNET = "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 export const RPC_URL = process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
 export const FACILITATOR_URL = process.env.X402_FACILITATOR_URL ?? "https://x402.org/facilitator";

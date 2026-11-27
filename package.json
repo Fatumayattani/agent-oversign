@@ -17,7 +17,8 @@
     "fund:attestor": "tsx scripts/fund-attestor.ts",
     "balances": "tsx scripts/balances.ts",
     "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
-    "setup:token-accounts": "tsx scripts/create-token-accounts.ts"
+    "setup:token-accounts": "tsx scripts/create-token-accounts.ts",
+    "setup:tokens": "tsx scripts/setup-oversign-tokens.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.11",
