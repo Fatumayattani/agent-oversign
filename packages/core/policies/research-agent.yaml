@@ -1,0 +1,40 @@
+# Agent Oversign policy for the demo research agent.
+# Every rule here is explicit. If a payment breaks one, Oversign says which.
+version: 1
+agent: research-agent
+
+asset:
+  symbol: USDC
+  mint: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+  decimals: 6
+
+limits:
+  max_per_payment_usd: 0.50
+  daily_budget_usd: 2.00
+  per_payee_daily_usd: 0.50
+
+payees:
+  allowed:
+    - name: fx-rates
+      address: 6DZJt21dFMtSHWPZQvtj8ghVZHoLpE6L3yk6wwKQZJ36
+      usual_price_usd: 0.02
+  # A payee that is not listed above goes to the owner's phone for approval.
+  unknown: review
+
+transactions:
+  allowed_programs:
+    - ComputeBudget111111111111111111111111111111   # compute budget
+    - TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA   # SPL Token
+    - TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb   # Token-2022
+    - MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr   # Memo
+    - L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95   # Lighthouse
+  allow_approvals: false
+  allow_authority_changes: false
+  allow_account_closes: false
+  # The x402 Solana spec caps priority fees at 5 lamports per compute unit.
+  max_compute_unit_price_microlamports: 5000000
+  require_simulation: true
+
+duplicates:
+  # Paying again for the same request within this window goes to review.
+  window_seconds: 300

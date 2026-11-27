@@ -31,6 +31,8 @@ import { decodeMessage, writableAccounts } from "../decode.js";
 import { inspectMessage } from "../inspect.js";
 import { MEMO_PROGRAM } from "../programs.js";
 import { simulateEffects } from "../simulate.js";
+import { evaluate } from "../policy/evaluate.js";
+import { loadPolicy } from "../policy/load.js";
 
 // Builds four transactions an agent's key might be asked to sign, then shows what
 // Oversign sees in each: first by reading the bytes, then by simulating on devnet.
@@ -61,6 +63,7 @@ function format(value: unknown): string {
 
 async function main(): Promise<void> {
   const rpc = createSolanaRpc(RPC_URL);
+  const policy = loadPolicy(fileURLToPath(new URL("../../policies/research-agent.yaml", import.meta.url)));
   const agent = await loadSigner("agent");
   const merchant = await loadSigner("merchant");
   const attacker = await loadSigner("attacker");
@@ -163,6 +166,18 @@ async function main(): Promise<void> {
       if (change.delegate?.before !== change.delegate?.after) parts.push(`delegate ${change.delegate?.before ?? "none"} -> ${change.delegate?.after ?? "none"}`);
       if (change.owner?.before !== change.owner?.after) parts.push(`owner ${change.owner?.before} -> ${change.owner?.after}`);
       console.log(`  ${change.account}: ${parts.length > 0 ? parts.join(", ") : "no change"}`);
+    }
+
+    const result = evaluate(policy, {
+      staticEffects,
+      simulated,
+      agent: agent.address,
+      requestKey: `demo case ${testCase.name}`,
+      history: [],
+    });
+    console.log(`Oversign decision: ${result.decision}`);
+    for (const reason of result.reasons) {
+      console.log(`  ${reason.decision} ${reason.code}: ${reason.message}`);
     }
     if (process.argv.includes("--verbose")) console.log(format(staticEffects));
   }

@@ -8,6 +8,11 @@
   },
   "scripts": {
     "inspect:cases": "tsx src/demo/inspect-cases.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
   }
 }
