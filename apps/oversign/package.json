@@ -1,0 +1,17 @@
+{
+  "name": "@agent-oversign/service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "verify": "tsx src/verify.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@agent-oversign/core": "*"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6"
+  }
+}

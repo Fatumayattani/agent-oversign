@@ -176,7 +176,10 @@ export function evaluate(loaded: LoadedPolicy, input: EvaluationInput): Evaluati
     }
 
     if (!knownPayee) {
-      const message = `Payee ${payment.payee} is not in the policy.`;
+      const confirmed = payment.payee !== fx.transfers[0]?.destination;
+      const message = confirmed
+        ? `Payee ${payment.payee} is not in the policy.`
+        : `Could not confirm from the chain who owns ${payment.payee}, so the payee is treated as unknown.`;
       if (policy.payees.unknown === "block") block("PAYEE_BLOCKED", message);
       else review("UNKNOWN_PAYEE", message);
     } else if (payment.amount > toAtomic(knownPayee.usual_price_usd, decimals)) {
