@@ -121,3 +121,12 @@ grant execute on function public.is_owner() to authenticated;
 grant select on public.decisions, public.payments, public.approvals, public.agent_state to authenticated;
 grant update (frozen, updated_at, updated_by) on public.agent_state to authenticated;
 grant insert (decision_id) on public.approvals to authenticated;
+
+-- The policy the service loaded, so the dashboard shows the rules actually in force.
+alter table public.agent_state add column if not exists policy jsonb;
+
+-- Live spending updates for the dashboard.
+alter publication supabase_realtime add table public.payments;
+
+-- What Oversign saw before deciding (decoded instructions, simulation, timings).
+alter table public.decisions add column if not exists inspection jsonb;

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { PaymentRecord } from "@agent-oversign/core";
 import { SUPABASE_SECRET_KEY, SUPABASE_URL } from "./config.js";
+import type { Evidence } from "./evidence.js";
 import type { DecisionBody, DecisionRecord } from "./records.js";
 
 // Supabase is the control plane. This service writes with the secret key, which never
@@ -47,6 +48,25 @@ export async function ensureAgent(agent: string): Promise<void> {
   check(error, "agent_state upsert");
 }
 
+// What the dashboard shows as "the rules in force": the policy this service loaded,
+// written on every start so the dashboard never shows a stale copy.
+export type PolicySummary = {
+  name: string;
+  hash: string;
+  asset: string;
+  maxPerPayment: number;
+  dailyBudget: number;
+  perPayeeDaily: number;
+  duplicateWindowSeconds: number;
+  unknownPayees: "review" | "block";
+  payees: { name: string; address: string; usualPrice: number }[];
+};
+
+export async function publishPolicy(agent: string, policy: PolicySummary): Promise<void> {
+  const { error } = await db.from("agent_state").update({ policy }).eq("agent", agent);
+  check(error, "policy publish");
+}
+
 // Budgets and the duplicate window look back at most a day.
 export async function loadHistory(agent: string): Promise<PaymentRecord[]> {
   const since = Date.now() - DAY_MS;
@@ -76,7 +96,7 @@ export async function recordPayment(agent: string, decisionId: string, payment: 
   check(error, "payment insert");
 }
 
-export async function appendDecision(record: DecisionRecord): Promise<void> {
+export async function appendDecision(record: DecisionRecord, evidence?: Evidence): Promise<void> {
   const { recordHash, attestor, signature, anchorTransaction, settlementTransaction, ...body } = record;
   const { error } = await db.from("decisions").insert({
     id: body.id,
@@ -95,6 +115,7 @@ export async function appendDecision(record: DecisionRecord): Promise<void> {
     body,
     anchor_transaction: anchorTransaction ?? null,
     settlement_transaction: settlementTransaction ?? null,
+    inspection: evidence ?? null,
   });
   check(error, "decision insert");
 }

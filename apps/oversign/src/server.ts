@@ -6,7 +6,7 @@ import { ExactSvmScheme } from "@x402/svm/exact/client";
 import { loadPolicy } from "@agent-oversign/core";
 import { AGENT_TOKEN, OVERSIGN_PORT, OWNER_TOKEN, POLICY_PATH, RPC_URL, loadSigner } from "./config.js";
 import { createGuardedSigner, type GuardContext } from "./guard.js";
-import { addApproval, ensureAgent, getDecision, isFrozen, loadDecisions, setFrozen, updateDecision } from "./store.js";
+import { addApproval, ensureAgent, publishPolicy, getDecision, isFrozen, loadDecisions, setFrozen, updateDecision } from "./store.js";
 
 function requireToken(expected: () => string) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -25,6 +25,21 @@ async function main(): Promise<void> {
   AGENT_TOKEN();
   OWNER_TOKEN();
   await ensureAgent(agent.address);
+  await publishPolicy(agent.address, {
+    name: policy.policy.agent,
+    hash: policy.hash,
+    asset: policy.policy.asset.symbol,
+    maxPerPayment: policy.policy.limits.max_per_payment_usd,
+    dailyBudget: policy.policy.limits.daily_budget_usd,
+    perPayeeDaily: policy.policy.limits.per_payee_daily_usd,
+    duplicateWindowSeconds: policy.policy.duplicates.window_seconds,
+    unknownPayees: policy.policy.payees.unknown,
+    payees: policy.policy.payees.allowed.map((payee) => ({
+      name: payee.name,
+      address: payee.address,
+      usualPrice: payee.usual_price_usd,
+    })),
+  });
 
   const app = express();
   app.use(express.json());

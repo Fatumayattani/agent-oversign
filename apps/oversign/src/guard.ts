@@ -14,6 +14,7 @@ import {
   type LoadedPolicy,
 } from "@agent-oversign/core";
 import { anchorRecordHash } from "./anchor.js";
+import { buildEvidence } from "./evidence.js";
 import { RPC_URL } from "./config.js";
 import { buildBody, signBody, type DecisionRecord } from "./records.js";
 import { appendDecision, isFrozen, loadHistory, recordPayment, takeApproval, updateDecision } from "./store.js";
@@ -47,13 +48,16 @@ export function createGuardedSigner(
     async signTransactions(transactions, config) {
       for (const transaction of transactions) {
         const messageBytes = new Uint8Array(transaction.messageBytes);
+        const started = performance.now();
         const decoded = await decodeMessage(messageBytes, rpc);
         const staticEffects = inspectMessage(decoded);
+        const decodedAt = performance.now();
         const simulated = await simulateEffects(
           rpc,
           getBase64EncodedWireTransaction(transaction),
           writableAccounts(decoded),
         );
+        const simulatedAt = performance.now();
         const evaluation = evaluate(policy, {
           staticEffects,
           simulated,
@@ -61,6 +65,11 @@ export function createGuardedSigner(
           requestKey: context.requestKey,
           history: await loadHistory(agent.address),
           frozen: await isFrozen(agent.address),
+        });
+        const evidence = buildEvidence(staticEffects, simulated, {
+          decodeMs: Math.round(decodedAt - started),
+          simulateMs: Math.round(simulatedAt - decodedAt),
+          evaluateMs: Math.round(performance.now() - simulatedAt),
         });
 
         // An owner approval can clear a REVIEW for this one payment. It never clears a BLOCK.
@@ -74,7 +83,7 @@ export function createGuardedSigner(
           buildBody({ agent: agent.address, requestKey: context.requestKey, url: context.url, evaluation, messageBytes, approvedByOwner }),
           attestor,
         );
-        await appendDecision(record);
+        await appendDecision(record, evidence);
         context.outcome = { record, evaluation, signed };
 
         anchorRecordHash(attestor, record.recordHash)
