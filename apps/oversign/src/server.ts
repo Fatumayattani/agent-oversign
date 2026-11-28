@@ -4,7 +4,7 @@ import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { decodePaymentResponseHeader, wrapFetchWithPayment } from "@x402/fetch";
 import { ExactSvmScheme } from "@x402/svm/exact/client";
 import { loadPolicy } from "@agent-oversign/core";
-import { AGENT_TOKEN, OVERSIGN_PORT, OWNER_TOKEN, POLICY_PATH, RPC_URL, loadSigner } from "./config.js";
+import { AGENT_TOKEN, OVERSIGN_PORT, OWNER_TOKEN, OWNER_WALLET, POLICY_PATH, RPC_URL, loadSigner } from "./config.js";
 import { createGuardedSigner, type GuardContext } from "./guard.js";
 import { addApproval, ensureAgent, publishPolicy, getDecision, isFrozen, loadDecisions, setFrozen, updateDecision } from "./store.js";
 
@@ -39,6 +39,7 @@ async function main(): Promise<void> {
       address: payee.address,
       usualPrice: payee.usual_price_usd,
     })),
+    ownerWallet: OWNER_WALLET ?? null,
   });
 
   const app = express();
@@ -151,6 +152,7 @@ async function main(): Promise<void> {
     console.log(`Attestor: ${attestor.address}`);
     console.log(`Policy: ${policy.policy.agent} ${policy.hash.slice(0, 16)}...`);
     console.log("Control plane: Supabase");
+    console.log(OWNER_WALLET ? `Owner wallet (signs approvals): ${OWNER_WALLET}` : "Owner wallet: not set, so only owner-token approvals count");
   });
 }
 

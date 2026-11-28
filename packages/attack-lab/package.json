@@ -20,7 +20,8 @@
     "attack:compromised-client": "tsx src/attacks/compromised-client.ts",
     "attack:limits-off:server": "tsx src/attacks/limits-off-server.ts",
     "attack:limits-off": "tsx src/attacks/limits-off-agent.ts",
-    "oversign:demo": "tsx src/oversign-demo.ts"
+    "oversign:demo": "tsx src/oversign-demo.ts",
+    "phone:demo": "tsx src/phone-demo.ts"
   },
   "dependencies": {
     "@solana/kit": "^8.6.0",

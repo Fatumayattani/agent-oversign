@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { PaymentRecord } from "@agent-oversign/core";
-import { SUPABASE_SECRET_KEY, SUPABASE_URL } from "./config.js";
+import { verifyWalletApproval } from "./approval.js";
+import { OWNER_WALLET, SUPABASE_SECRET_KEY, SUPABASE_URL } from "./config.js";
 import type { Evidence } from "./evidence.js";
 import type { DecisionBody, DecisionRecord } from "./records.js";
 
@@ -60,6 +61,7 @@ export type PolicySummary = {
   duplicateWindowSeconds: number;
   unknownPayees: "review" | "block";
   payees: { name: string; address: string; usualPrice: number }[];
+  ownerWallet: string | null;
 };
 
 export async function publishPolicy(agent: string, policy: PolicySummary): Promise<void> {
@@ -164,37 +166,77 @@ export async function addApproval(decisionId: string, approvedBy: string): Promi
 
 type ApprovalRow = {
   decision_id: string;
-  decisions: { request_key: string; agent: string; payment: { payee: string; amount: string } | null };
+  approved_by: string;
+  signer: string | null;
+  signature: string | null;
+  signed_message: string | null;
+  decisions: {
+    request_key: string;
+    agent: string;
+    record_hash: string;
+    payment: { payee: string; amount: string } | null;
+  };
 };
 
 // One approval covers one payment: the same agent, request, payee and amount, within
-// ten minutes of approving, used once. Marking it used is a conditional update, so two
-// retries racing for the same approval cannot both get it.
+// ten minutes of approving, used once. An approval from the dashboard or phone counts
+// only if the owner's wallet signed it; the service's own owner token is the one
+// exception. Marking it used is a conditional update, so two retries racing for the
+// same approval cannot both get it.
 export async function takeApproval(agent: string, requestKey: string, payee: string, amount: bigint): Promise<boolean> {
   const since = new Date(Date.now() - APPROVAL_TTL_MS).toISOString();
   const { data, error } = await db
     .from("approvals")
-    .select("decision_id, decisions!inner(request_key, agent, payment)")
+    .select("decision_id, approved_by, signer, signature, signed_message, decisions!inner(request_key, agent, record_hash, payment)")
     .is("used_at", null)
     .gte("approved_at", since)
     .eq("decisions.agent", agent)
     .eq("decisions.request_key", requestKey);
   check(error, "approvals read");
 
-  const rows = (data ?? []) as unknown as ApprovalRow[];
-  const match = rows.find(
+  const rows = ((data ?? []) as unknown as ApprovalRow[]).filter(
     (row) => row.decisions.payment?.payee === payee && row.decisions.payment?.amount === amount.toString(),
   );
-  if (!match) return false;
 
-  const { data: claimed, error: claimError } = await db
-    .from("approvals")
-    .update({ used_at: new Date().toISOString() })
-    .eq("decision_id", match.decision_id)
-    .is("used_at", null)
-    .select("decision_id");
-  check(claimError, "approval claim");
-  return (claimed ?? []).length === 1;
+  for (const row of rows) {
+    const trusted = row.approved_by === "owner-token" || (await walletApproved(row));
+    if (!trusted) continue;
+
+    const { data: claimed, error: claimError } = await db
+      .from("approvals")
+      .update({ used_at: new Date().toISOString() })
+      .eq("decision_id", row.decision_id)
+      .is("used_at", null)
+      .select("decision_id");
+    check(claimError, "approval claim");
+    if ((claimed ?? []).length === 1) return true;
+  }
+  return false;
+}
+
+async function walletApproved(row: ApprovalRow): Promise<boolean> {
+  if (!row.signer) return false;
+  if (!OWNER_WALLET) {
+    console.warn(
+      `Ignoring an approval signed by wallet ${row.signer}: no owner wallet is set. ` +
+        `If that is your wallet, add OVERSIGN_OWNER_WALLET=${row.signer} to .env and restart.`,
+    );
+    return false;
+  }
+  const valid = await verifyWalletApproval(
+    {
+      decisionId: row.decision_id,
+      recordHash: row.decisions.record_hash,
+      payee: row.decisions.payment!.payee,
+      amount: row.decisions.payment!.amount,
+      signer: row.signer,
+      signature: row.signature,
+      signedMessage: row.signed_message,
+    },
+    OWNER_WALLET,
+  );
+  if (!valid) console.warn(`Ignoring approval for ${row.decision_id}: not a valid signature from the owner wallet.`);
+  return valid;
 }
 
 // Kill switch. Read fresh before every payment, so a freeze from the dashboard or

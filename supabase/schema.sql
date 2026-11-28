@@ -130,3 +130,9 @@ alter publication supabase_realtime add table public.payments;
 
 -- What Oversign saw before deciding (decoded instructions, simulation, timings).
 alter table public.decisions add column if not exists inspection jsonb;
+
+-- Wallet-signed approvals: the owner's wallet signs a message naming the payment.
+alter table public.approvals add column if not exists signer text;
+alter table public.approvals add column if not exists signature text;
+alter table public.approvals add column if not exists signed_message text;
+grant insert (decision_id, signer, signature, signed_message) on public.approvals to authenticated;

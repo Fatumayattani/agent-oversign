@@ -1249,3 +1249,160 @@ button {
     transition: none !important;
   }
 }
+
+/* Wallet approvals */
+
+.approve {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+}
+
+.approve-elsewhere {
+  max-width: 15rem;
+  margin: 0;
+}
+
+.button-large {
+  width: 100%;
+  justify-content: center;
+  min-height: 3.25rem;
+  font-size: var(--step-1);
+}
+
+.masthead-link {
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+/* Phone approvals page */
+
+.phone {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+.phone .masthead {
+  padding: 1rem 0;
+}
+
+.phone-desk {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.phone-title {
+  margin: 0.25rem 0 0.5rem;
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.phone-title-held {
+  color: var(--held);
+}
+
+.phone-held > .quiet {
+  margin: 0;
+}
+
+.phone-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.phone-card {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1.25rem;
+  border-radius: 10px;
+  background: var(--held-tint);
+  border: 1px solid color-mix(in srgb, var(--held) 35%, transparent);
+  animation: arrive-card 500ms ease-out both;
+}
+
+@keyframes arrive-card {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.phone-card p {
+  margin: 0;
+}
+
+.phone-card .approve {
+  margin-top: 0.5rem;
+  justify-items: stretch;
+}
+
+.phone-amount {
+  font-size: var(--step-4);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--held);
+}
+
+.phone-reasons {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.wallet-card {
+  padding: 1.25rem;
+  border-radius: 10px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.wallet-card p {
+  margin: 0;
+}
+
+.wallet-ok {
+  color: var(--allow);
+  font-weight: 600;
+}
+
+.wallet-warn {
+  color: var(--held);
+  font-weight: 600;
+}
+
+.wallet-address {
+  font-size: var(--step--1);
+  overflow-wrap: anywhere;
+}
+
+.phone-recent {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.phone-recent li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.phone .control {
+  padding: 1.25rem;
+}

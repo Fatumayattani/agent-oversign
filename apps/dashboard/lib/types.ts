@@ -74,6 +74,7 @@ export type PolicySummary = {
   duplicateWindowSeconds: number;
   unknownPayees: "review" | "block";
   payees: { name: string; address: string; usualPrice: number }[];
+  ownerWallet?: string | null;
 };
 
 export type AgentState = {

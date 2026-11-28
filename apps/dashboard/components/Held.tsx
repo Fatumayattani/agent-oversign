@@ -1,31 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import type { ApprovalProof } from "@/lib/approval";
 import { ago, requestLabel, short, toUsd, usd } from "@/lib/format";
 import type { Decision } from "@/lib/types";
+import { ApproveButton } from "./ApproveButton";
 
 type Props = {
   held: Decision[];
   now: number;
   names: Map<string, string>;
-  onApprove: (id: string) => Promise<string | null>;
+  onApprove: (id: string, proof: ApprovalProof) => Promise<string | null>;
 };
 
 // Payments the signer refused to sign without you. Approving one lets exactly that
 // payment through on the agent's next try. A blocked payment never shows up here.
 export function Held({ held, now, names, onApprove }: Props) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   if (held.length === 0) return null;
-
-  async function approve(id: string) {
-    setBusy(id);
-    setError(null);
-    const failure = await onApprove(id);
-    if (failure) setError(failure);
-    setBusy(null);
-  }
 
   return (
     <section className="held" aria-labelledby="held-title">
@@ -51,14 +41,11 @@ export function Held({ held, now, names, onApprove }: Props) {
                 </ul>
                 <p className="quiet small">Asked {ago(decision.created_at, now)}. An approval covers one retry within 10 minutes.</p>
               </div>
-              <button className="button button-ink" disabled={busy === decision.id} onClick={() => approve(decision.id)}>
-                {busy === decision.id ? "Approving" : "Approve this payment"}
-              </button>
+              <ApproveButton decision={decision} onApprove={onApprove} />
             </li>
           );
         })}
       </ul>
-      {error && <p className="form-error" role="alert">{error}</p>}
     </section>
   );
 }

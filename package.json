@@ -21,7 +21,8 @@
     "setup:tokens": "tsx scripts/setup-oversign-tokens.ts",
     "demo:servers": "concurrently -k -n merchant,creep,oversign -c green,red,cyan \"npm run merchant -w packages/attack-lab\" \"npm run attack:price-creep:server -w packages/attack-lab\" \"npm start -w apps/oversign\"",
     "demo": "npm run oversign:demo -w packages/attack-lab",
-    "verify": "npm run verify -w apps/oversign"
+    "verify": "npm run verify -w apps/oversign",
+    "demo:phone": "npm run phone:demo -w packages/attack-lab"
   },
   "devDependencies": {
     "@types/node": "^26.6.11",
