@@ -6,7 +6,7 @@ import { ExactSvmScheme } from "@x402/svm/exact/client";
 import { loadPolicy } from "@agent-oversign/core";
 import { AGENT_TOKEN, OVERSIGN_PORT, OWNER_TOKEN, POLICY_PATH, RPC_URL, loadSigner } from "./config.js";
 import { createGuardedSigner, type GuardContext } from "./guard.js";
-import { addApproval, isFrozen, loadDecisions, setFrozen, updateDecision } from "./store.js";
+import { addApproval, ensureAgent, publishPolicy, getDecision, isFrozen, loadDecisions, setFrozen, updateDecision } from "./store.js";
 
 function requireToken(expected: () => string) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -24,12 +24,34 @@ async function main(): Promise<void> {
   const policy = loadPolicy(POLICY_PATH);
   AGENT_TOKEN();
   OWNER_TOKEN();
+  await ensureAgent(agent.address);
+  await publishPolicy(agent.address, {
+    name: policy.policy.agent,
+    hash: policy.hash,
+    asset: policy.policy.asset.symbol,
+    maxPerPayment: policy.policy.limits.max_per_payment_usd,
+    dailyBudget: policy.policy.limits.daily_budget_usd,
+    perPayeeDaily: policy.policy.limits.per_payee_daily_usd,
+    duplicateWindowSeconds: policy.policy.duplicates.window_seconds,
+    unknownPayees: policy.policy.payees.unknown,
+    payees: policy.policy.payees.allowed.map((payee) => ({
+      name: payee.name,
+      address: payee.address,
+      usualPrice: payee.usual_price_usd,
+    })),
+  });
 
   const app = express();
   app.use(express.json());
 
-  app.get("/health", (_req, res) => {
-    res.json({ ok: true, agent: agent.address, attestor: attestor.address, policyHash: policy.hash, frozen: isFrozen() });
+  app.get("/health", async (_req, res) => {
+    res.json({
+      ok: true,
+      agent: agent.address,
+      attestor: attestor.address,
+      policyHash: policy.hash,
+      frozen: await isFrozen(agent.address),
+    });
   });
 
   // The agent's only way to pay. It sends a URL and its token, never a key.
@@ -58,7 +80,9 @@ async function main(): Promise<void> {
       const record = context.outcome?.record;
 
       if (record && settlement?.transaction) {
-        updateDecision(record.id, { settlementTransaction: settlement.transaction });
+        await updateDecision(record.id, { settlementTransaction: settlement.transaction }).catch((error: Error) =>
+          console.error(`Saving settlement for ${record.id} failed: ${error.message}`),
+        );
       }
 
       res.json({
@@ -90,29 +114,35 @@ async function main(): Promise<void> {
     }
   });
 
-  app.get("/decisions", requireToken(OWNER_TOKEN), (_req, res) => {
-    res.json(loadDecisions().reverse());
+  app.get("/decisions", requireToken(OWNER_TOKEN), async (_req, res) => {
+    res.json(await loadDecisions());
   });
 
   // Owner approves one REVIEW payment. The agent then retries the same request.
-  app.post("/approvals/:id/approve", requireToken(OWNER_TOKEN), (req, res) => {
-    const record = loadDecisions().find((item) => item.id === req.params.id);
+  app.post("/approvals/:id/approve", requireToken(OWNER_TOKEN), async (req, res) => {
+    const record = await getDecision(String(req.params.id));
     if (!record || record.decision !== "REVIEW" || !record.payment) {
       res.status(404).json({ error: "no REVIEW decision with that id" });
       return;
     }
-    addApproval(record.id, { requestKey: record.requestKey, payee: record.payment.payee, amount: record.payment.amount });
+    await addApproval(record.id, "owner-token");
     res.json({ approved: true, id: record.id });
   });
 
   // Kill switch: while frozen, every payment is blocked.
-  app.post("/freeze", requireToken(OWNER_TOKEN), (_req, res) => {
-    setFrozen(true);
+  app.post("/freeze", requireToken(OWNER_TOKEN), async (_req, res) => {
+    await setFrozen(agent.address, true, "owner-token");
     res.json({ frozen: true });
   });
-  app.post("/unfreeze", requireToken(OWNER_TOKEN), (_req, res) => {
-    setFrozen(false);
+  app.post("/unfreeze", requireToken(OWNER_TOKEN), async (_req, res) => {
+    await setFrozen(agent.address, false, "owner-token");
     res.json({ frozen: false });
+  });
+
+  // Express 5 passes errors from async routes here. Never leak details beyond the message.
+  app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   });
 
   app.listen(OVERSIGN_PORT, () => {
@@ -120,6 +150,7 @@ async function main(): Promise<void> {
     console.log(`Agent wallet (key held here only): ${agent.address}`);
     console.log(`Attestor: ${attestor.address}`);
     console.log(`Policy: ${policy.policy.agent} ${policy.hash.slice(0, 16)}...`);
+    console.log("Control plane: Supabase");
   });
 }
 

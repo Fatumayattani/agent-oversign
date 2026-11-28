@@ -1,0 +1,1251 @@
+/* Oversign dashboard. Security-printing language: engraved ink on cool paper,
+   with rubber stamps for decisions. The seal is the one bold element. */
+
+:root {
+  --paper: #e9edf2;
+  --sheet: #f7f9fb;
+  --ink: #18223a;
+  --ink-soft: #4a5672;
+  --rule: #c9d2de;
+  --engrave: #8ea3c0;
+  --allow: #12715f;
+  --allow-tint: #e3f0ec;
+  --held: #a4660f;
+  --held-tint: #f8efdf;
+  --block: #b3261e;
+  --block-tint: #f6e7e5;
+
+  --sans: "Schibsted Grotesk Variable", "Schibsted Grotesk", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --step--1: 0.8125rem;
+  --step-0: 0.9375rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-4: clamp(1.9rem, 1.2rem + 2.6vw, 2.75rem);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  letter-spacing: -0.01em;
+}
+
+.quiet {
+  color: var(--ink-soft);
+}
+
+.small {
+  font-size: var(--step--1);
+}
+
+.notice {
+  max-width: 36rem;
+  margin: 4rem auto;
+  padding: 0 1.25rem;
+  color: var(--ink-soft);
+}
+
+/* Buttons */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 1.1rem;
+  border: 0;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.button-ink {
+  background: var(--ink);
+  color: var(--sheet);
+}
+
+.button-ink:hover:not(:disabled) {
+  background: #24315a;
+}
+
+.button-seal {
+  background: var(--block);
+  color: #fff;
+  min-height: 3rem;
+  padding: 0 1.5rem;
+  font-size: var(--step-1);
+}
+
+.button-seal:hover:not(:disabled) {
+  background: #951d16;
+}
+
+.button-quiet {
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 0 0.5rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.form-error {
+  color: var(--block);
+  margin: 0.75rem 0 0;
+}
+
+/* Stamps */
+
+.stamp {
+  display: inline-block;
+  padding: 0.1rem 0.5rem 0.15rem;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  line-height: 1.3;
+  transform: rotate(-2.5deg);
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.stamp-allowed {
+  color: var(--allow);
+}
+
+.stamp-held {
+  color: var(--held);
+}
+
+.stamp-blocked {
+  color: var(--block);
+}
+
+.stamp-muted {
+  color: var(--ink-soft);
+  border-style: dashed;
+}
+
+.stamp-press {
+  animation: press 460ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+
+@keyframes press {
+  from {
+    opacity: 0;
+    transform: scale(1.7) rotate(-11deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-2.5deg);
+  }
+}
+
+/* The seal */
+
+.seal {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.seal svg {
+  display: block;
+  overflow: visible;
+}
+
+.seal path {
+  fill: none;
+  stroke: var(--engrave);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.seal-band-inner path {
+  stroke: var(--ink);
+  stroke-opacity: 0.55;
+}
+
+.seal-rim {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+.seal-rim-thin {
+  stroke-width: 0.5;
+  stroke-opacity: 0.6;
+}
+
+.seal-core {
+  fill: var(--ink);
+}
+
+.seal-band {
+  transform-origin: 0 0;
+  transform-box: view-box;
+}
+
+.seal-live .seal-band-outer {
+  animation: turn 240s linear infinite;
+}
+
+.seal-live .seal-band-middle {
+  animation: turn 170s linear infinite reverse;
+}
+
+.seal-live .seal-band-inner {
+  animation: turn 320s linear infinite;
+}
+
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.seal-frozen path {
+  stroke: var(--block);
+  stroke-opacity: 0.45;
+}
+
+.seal-frozen .seal-rim,
+.seal-frozen .seal-core {
+  stroke: var(--block);
+  fill: none;
+}
+
+.seal-frozen .seal-core {
+  fill: var(--block);
+}
+
+.seal-void {
+  position: absolute;
+  font-size: 1.75rem;
+  padding: 0.15rem 0.9rem 0.25rem;
+  border-width: 3px;
+  background: color-mix(in srgb, var(--block-tint) 80%, transparent);
+  transform: rotate(-14deg);
+  animation: press 460ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+
+/* Login */
+
+.login {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.login-title {
+  margin: 1.5rem 0 0.25rem;
+  font-size: var(--step-4);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.login-lede {
+  max-width: 24rem;
+  text-wrap: balance;
+  margin: 0.5rem 0 2rem;
+  color: var(--ink-soft);
+}
+
+.login-form {
+  width: min(100%, 22rem);
+  display: grid;
+  gap: 1rem;
+  text-align: left;
+}
+
+.login-form label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.login-form input {
+  min-height: 2.75rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--sheet);
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--ink);
+}
+
+.login-form input:focus-visible {
+  outline-offset: 0;
+}
+
+.login-form .button {
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+/* Shell */
+
+.shell {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+}
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 0;
+}
+
+.wordmark {
+  font-size: var(--step-2);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.live::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--rule);
+}
+
+.live-on::before {
+  background: var(--allow);
+}
+
+.masthead-gap {
+  flex: 1;
+}
+
+.who {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.desk {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.section-title {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+/* Control panel: the document with the seal */
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 2.5vw, 1.75rem) clamp(1.25rem, 3vw, 2.25rem);
+  background: var(--sheet);
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  outline: 1px solid var(--rule);
+  outline-offset: -7px;
+  transition: background-color 300ms ease;
+}
+
+.control-frozen {
+  background: var(--block-tint);
+  border-color: var(--block);
+}
+
+.control-body {
+  max-width: 38rem;
+}
+
+.control-title {
+  margin: 0;
+  text-wrap: balance;
+  font-size: clamp(1.6rem, 1.1rem + 1.6vw, 2.25rem);
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.control-frozen .control-title {
+  color: var(--block);
+}
+
+.control-lede {
+  margin: 0.5rem 0 0;
+  font-size: var(--step-0);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.control-meta {
+  margin: 0.9rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.meta-gap {
+  display: inline-block;
+  width: 1.25rem;
+}
+
+.control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+/* Held payments: perforated slips */
+
+.held .section-title {
+  color: var(--held);
+  margin-bottom: 0.75rem;
+}
+
+.slips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.slip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.1rem 1.5rem 1.1rem 2rem;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 0 50%, var(--paper) 5px, transparent 5.5px) left top / 12px 16px repeat-y,
+    var(--held-tint);
+  border: 1px solid color-mix(in srgb, var(--held) 30%, transparent);
+}
+
+.slip-amount {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--held);
+  padding-right: 1.5rem;
+  border-right: 1px dashed color-mix(in srgb, var(--held) 45%, transparent);
+}
+
+.slip-what {
+  margin: 0;
+}
+
+.slip-reasons {
+  margin: 0.35rem 0;
+  padding-left: 1.1rem;
+}
+
+.slip-body p.small {
+  margin: 0;
+}
+
+/* Two columns: the flow, and the ledger with spending */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 2rem;
+  align-items: start;
+}
+
+.aside {
+  display: grid;
+  gap: 2rem;
+}
+
+/* The flow: one payment's route through Oversign */
+
+.flow {
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+.flow-empty p {
+  max-width: 34rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The answer first: what happened to the money. */
+.outcome {
+  padding: 0 0 1.25rem 1rem;
+  border-left: 4px solid var(--ink);
+}
+
+.outcome-allowed {
+  border-left-color: var(--allow);
+}
+
+.outcome-held {
+  border-left-color: var(--held);
+}
+
+.outcome-blocked {
+  border-left-color: var(--block);
+}
+
+.outcome-when {
+  margin: 0 0 0.25rem;
+}
+
+.outcome-title {
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.outcome-allowed .outcome-title {
+  color: var(--allow);
+}
+
+.outcome-held .outcome-title {
+  color: var(--held);
+}
+
+.outcome-blocked .outcome-title {
+  color: var(--block);
+}
+
+.outcome-why {
+  margin: 0.4rem 0 0;
+  font-size: var(--step-1);
+  line-height: 1.4;
+  max-width: 40rem;
+}
+
+/* Where the payment got to, at a glance. */
+.stepper {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  margin: 0.5rem 0 2rem;
+  padding: 0;
+}
+
+.step {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--1);
+  text-align: center;
+}
+
+.step::before {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--ink);
+}
+
+.step:first-child::before {
+  display: none;
+}
+
+.step-dot {
+  position: relative;
+  z-index: 1;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+}
+
+.step-hold .step-dot {
+  border-color: var(--held);
+  background: var(--held);
+}
+
+.step-stop .step-dot {
+  border-color: var(--block);
+  background: var(--block);
+}
+
+.step-idle .step-dot {
+  background: var(--sheet);
+  border-style: dashed;
+  border-color: var(--engrave);
+}
+
+.step-stop .step-label {
+  color: var(--block);
+  font-weight: 700;
+}
+
+.step-hold .step-label {
+  color: var(--held);
+  font-weight: 700;
+}
+
+.step-idle .step-label {
+  color: var(--ink-soft);
+}
+
+.route-title {
+  margin: 0 0 1rem;
+  font-size: var(--step--1);
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+.rules-toggle {
+  min-height: 0;
+  margin-top: 0.5rem;
+  padding: 0;
+}
+
+.flow-run .step {
+  animation: station-in 360ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 120ms);
+}
+
+.route {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.station {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: 1rem;
+  padding-bottom: 1.6rem;
+}
+
+/* The line between stations. */
+.station::before {
+  content: "";
+  position: absolute;
+  left: calc(0.75rem - 1px);
+  top: 1.35rem;
+  bottom: 0.1rem;
+  width: 2px;
+  background: var(--ink);
+}
+
+.station-last {
+  padding-bottom: 0;
+}
+
+.station-last::before {
+  display: none;
+}
+
+.station-node {
+  position: relative;
+  z-index: 1;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.05rem;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--sheet);
+}
+
+.station-done .station-node {
+  background: var(--ink);
+  box-shadow: inset 0 0 0 4px var(--sheet);
+}
+
+.station-hold .station-node {
+  border-color: var(--held);
+  background: var(--held);
+  box-shadow: inset 0 0 0 4px var(--held-tint);
+}
+
+.station-stop .station-node {
+  border-color: var(--block);
+  background: var(--block);
+  box-shadow: inset 0 0 0 4px var(--block-tint);
+}
+
+.station-idle .station-node {
+  border-style: dashed;
+  border-color: var(--engrave);
+}
+
+/* After a refusal the route goes quiet: nothing past it moved money. */
+.station-stop::before,
+.station-stop ~ .station::before {
+  background: repeating-linear-gradient(to bottom, var(--engrave) 0 4px, transparent 4px 8px);
+}
+
+.station-title {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: var(--step-0);
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.station-stop .station-title {
+  color: var(--block);
+}
+
+.station-hold .station-title {
+  color: var(--held);
+}
+
+.station-time {
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.station-content {
+  margin-top: 0.3rem;
+  max-width: 40rem;
+}
+
+.station-content p {
+  margin: 0 0 0.35rem;
+}
+
+.strong {
+  font-weight: 600;
+}
+
+.flow-run .station {
+  animation: station-in 420ms ease-out both;
+  animation-delay: calc(var(--i) * 180ms);
+}
+
+@keyframes station-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.instructions {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.instructions li {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.instruction-program {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  padding-top: 0.1rem;
+}
+
+.instruction-danger {
+  color: var(--block);
+  font-weight: 600;
+}
+
+.instruction-danger .instruction-program {
+  color: var(--block);
+}
+
+.moves {
+  list-style: none;
+  margin: 0.2rem 0 0.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.moves li {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.move-who {
+  font-weight: 600;
+}
+
+.move-delta {
+  font-weight: 650;
+}
+
+.move-out {
+  color: var(--block);
+}
+
+.move-in {
+  color: var(--allow);
+}
+
+.flags {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--block);
+}
+
+.checks {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.3rem 1.5rem;
+  font-size: var(--step--1);
+}
+
+.check {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr);
+  gap: 0.4rem;
+}
+
+.check-mark {
+  font-weight: 700;
+  text-align: center;
+}
+
+.check-pass .check-mark {
+  color: var(--allow);
+}
+
+.check-skipped {
+  color: var(--ink-soft);
+}
+
+.check-hold {
+  color: var(--held);
+  font-weight: 600;
+}
+
+.check-block {
+  color: var(--block);
+  font-weight: 600;
+}
+
+.check-why {
+  display: block;
+  font-weight: 400;
+}
+
+.verdict {
+  margin-top: 0.9rem;
+}
+
+.verdict .stamp {
+  font-size: var(--step-1);
+  padding: 0.15rem 0.75rem 0.2rem;
+  border-width: 3px;
+}
+
+/* The ledger */
+
+.feed-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.feed-head .button-quiet {
+  min-height: 0;
+  padding: 0;
+}
+
+.filters {
+  display: inline-flex;
+  margin-bottom: 0.75rem;
+  padding: 3px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--rule) 55%, transparent);
+}
+
+.filter {
+  border: 0;
+  background: transparent;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.filter-on {
+  background: var(--sheet);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(24 34 58 / 0.12);
+}
+
+.empty {
+  padding: 1rem 0;
+  color: var(--ink-soft);
+}
+
+.ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 34rem;
+  overflow-y: auto;
+  background: var(--sheet);
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+}
+
+.entry + .entry {
+  border-top: 1px solid var(--rule);
+}
+
+.entry-row {
+  width: 100%;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 0.75rem 1.1rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry-row:hover {
+  background: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+.entry-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.entry-selected .entry-row {
+  border-left-color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+
+.entry-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.entry-path,
+.entry-who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-who {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.entry-amount {
+  font-weight: 650;
+}
+
+.entry-blocked .entry-amount {
+  color: var(--block);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.entry-time {
+  flex: none;
+}
+
+.entry-fresh {
+  animation: arrive 2.6s ease-out both;
+}
+
+@keyframes arrive {
+  from {
+    background: color-mix(in srgb, var(--engrave) 28%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+/* Spending */
+
+.spend {
+  padding-top: 0.25rem;
+}
+
+.spend-head {
+  margin-bottom: 0.9rem;
+}
+
+.spend-left {
+  margin: 0.2rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.rail {
+  display: flex;
+  gap: 2px;
+  height: 1rem;
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid var(--ink);
+  background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--rule) 70%, transparent) 4px 5px);
+  overflow: hidden;
+}
+
+.rail-segment {
+  flex: none;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--ink);
+}
+
+.rail-segment-unknown {
+  background: var(--held);
+}
+
+.payees {
+  list-style: none;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+  font-size: var(--step--1);
+}
+
+.payees li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.payee-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payee-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.payee-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.payee-amount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rules {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+}
+
+.rules-title {
+  margin: 0 0 0.5rem;
+  font-size: var(--step-0);
+  font-weight: 650;
+}
+
+.rules ul {
+  margin: 0 0 0.9rem;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+  font-size: var(--step--1);
+}
+
+.rules p {
+  margin: 0;
+}
+
+/* Smaller screens */
+
+@media (max-width: 960px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+
+  .aside {
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .shell {
+    padding: 0 1rem 3rem;
+  }
+
+  .who {
+    display: none;
+  }
+
+  .control {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .control-actions {
+    margin-left: 0;
+  }
+
+  .control .seal {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .control .seal svg {
+    width: 120px;
+    height: 120px;
+  }
+
+  .slip {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .slip-amount {
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .stepper {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    row-gap: 1rem;
+  }
+
+  .step:nth-child(5)::before {
+    display: none;
+  }
+
+  .instructions li,
+  .moves li {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .moves li {
+    grid-template-columns: 1fr auto;
+  }
+
+  .move-who {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

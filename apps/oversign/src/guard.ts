@@ -14,6 +14,7 @@ import {
   type LoadedPolicy,
 } from "@agent-oversign/core";
 import { anchorRecordHash } from "./anchor.js";
+import { buildEvidence } from "./evidence.js";
 import { RPC_URL } from "./config.js";
 import { buildBody, signBody, type DecisionRecord } from "./records.js";
 import { appendDecision, isFrozen, loadHistory, recordPayment, takeApproval, updateDecision } from "./store.js";
@@ -34,7 +35,8 @@ export class OversignRefusal extends Error {
 
 // The signing boundary. The x402 client builds the payment, but the only way to get
 // a signature is through this signer, which checks the exact bytes first.
-// The agent never holds the key, so it cannot skip this step.
+// The agent never holds the key, so it cannot skip this step. If Supabase cannot be
+// reached, a read or write throws and nothing is signed: it fails closed.
 export function createGuardedSigner(
   agent: KeyPairSigner,
   attestor: KeyPairSigner,
@@ -46,34 +48,42 @@ export function createGuardedSigner(
     async signTransactions(transactions, config) {
       for (const transaction of transactions) {
         const messageBytes = new Uint8Array(transaction.messageBytes);
+        const started = performance.now();
         const decoded = await decodeMessage(messageBytes, rpc);
         const staticEffects = inspectMessage(decoded);
+        const decodedAt = performance.now();
         const simulated = await simulateEffects(
           rpc,
           getBase64EncodedWireTransaction(transaction),
           writableAccounts(decoded),
         );
+        const simulatedAt = performance.now();
         const evaluation = evaluate(policy, {
           staticEffects,
           simulated,
           agent: agent.address,
           requestKey: context.requestKey,
-          history: loadHistory(),
-          frozen: isFrozen(),
+          history: await loadHistory(agent.address),
+          frozen: await isFrozen(agent.address),
+        });
+        const evidence = buildEvidence(staticEffects, simulated, {
+          decodeMs: Math.round(decodedAt - started),
+          simulateMs: Math.round(simulatedAt - decodedAt),
+          evaluateMs: Math.round(performance.now() - simulatedAt),
         });
 
         // An owner approval can clear a REVIEW for this one payment. It never clears a BLOCK.
         const approvedByOwner =
           evaluation.decision === "REVIEW" &&
           evaluation.payment !== undefined &&
-          takeApproval(context.requestKey, evaluation.payment.payee, evaluation.payment.amount);
+          (await takeApproval(agent.address, context.requestKey, evaluation.payment.payee, evaluation.payment.amount));
         const signed = evaluation.decision === "ALLOW" || approvedByOwner;
 
         const record = await signBody(
           buildBody({ agent: agent.address, requestKey: context.requestKey, url: context.url, evaluation, messageBytes, approvedByOwner }),
           attestor,
         );
-        appendDecision(record);
+        await appendDecision(record, evidence);
         context.outcome = { record, evaluation, signed };
 
         anchorRecordHash(attestor, record.recordHash)
@@ -87,7 +97,7 @@ export function createGuardedSigner(
         // Counted as spent the moment it is signed, because funds can move even when a
         // server later reports the settlement as pending.
         if (evaluation.payment) {
-          recordPayment({
+          await recordPayment(agent.address, record.id, {
             timestamp: Date.now(),
             payee: evaluation.payment.payee,
             amount: evaluation.payment.amount,
