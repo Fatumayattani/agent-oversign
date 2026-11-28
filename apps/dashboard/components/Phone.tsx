@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { ago, requestLabel, short, statusOf, toUsd, usd } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { useOwnerData } from "@/lib/useOwnerData";
-import { useOwnerWallet } from "@/lib/wallet";
+import { lastWallet } from "@/lib/mwa";
 import { ApproveButton } from "./ApproveButton";
 import { ControlPanel } from "./ControlPanel";
 import { Stamp } from "./Stamp";
@@ -122,15 +122,15 @@ export function Phone({ session }: { session: Session }) {
 }
 
 function WalletCard({ ownerWallet }: { ownerWallet: string | null }) {
-  const wallet = useOwnerWallet();
+  const [last, setLast] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const address = wallet.account?.address;
-  const matches = address && ownerWallet === address;
+  useEffect(() => setLast(lastWallet()), []);
+  const matches = last !== null && ownerWallet === last;
 
   async function copy() {
-    if (!address) return;
+    if (!last) return;
     try {
-      await navigator.clipboard.writeText(address);
+      await navigator.clipboard.writeText(last);
       setCopied(true);
     } catch {
       setCopied(false);
@@ -147,39 +147,24 @@ function WalletCard({ ownerWallet }: { ownerWallet: string | null }) {
           Oversign trusts approvals signed by <span className="mono">{short(ownerWallet, 6, 6)}</span>.
         </p>
       ) : (
-        <p>Oversign doesn&apos;t trust any wallet yet. Connect yours and add its address to the service.</p>
+        <p>Oversign doesn&apos;t trust any wallet yet. Approve one payment, then add the wallet&apos;s address to the service.</p>
       )}
-      {address ? (
+      {last && (
         <>
           <p className={matches ? "wallet-ok" : "wallet-warn"}>
-            {matches
-              ? "This phone's wallet is the trusted one."
-              : `Connected ${short(address, 6, 6)}, which Oversign doesn't trust yet.`}
+            {matches ? "Your last approval came from the trusted wallet." : `Your last approval was signed by ${short(last, 6, 6)}, which Oversign doesn't trust yet.`}
           </p>
           {!matches && (
             <>
-              <p className="mono wallet-address">{address}</p>
+              <p className="mono wallet-address">{last}</p>
               <button className="button button-quiet" onClick={copy}>
                 {copied ? "Copied" : "Copy address"}
               </button>
             </>
           )}
         </>
-      ) : (
-        wallet.available && (
-          <button className="button button-ink" onClick={wallet.connect}>
-            Connect your wallet
-          </button>
-        )
       )}
-      {!wallet.available && (
-        <p className="quiet small">Open this page in Chrome on Android with a Solana wallet app installed.</p>
-      )}
-      {wallet.error && (
-        <p className="form-error" role="alert">
-          {wallet.error}
-        </p>
-      )}
+      <p className="quiet small">Your wallet opens each time you approve. Use Chrome on Android with a Solana wallet app.</p>
     </section>
   );
 }
