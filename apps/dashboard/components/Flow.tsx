@@ -3,7 +3,9 @@
 import { useState, type ReactNode } from "react";
 import { ago, explorerTx, requestLabel, short, statusOf, toUsd, usd, type Status } from "@/lib/format";
 import { DANGEROUS_KINDS, checkRules, programName } from "@/lib/rules";
+import type { ApprovalProof } from "@/lib/approval";
 import type { Approval, Decision, Evidence, PolicySummary, Reason } from "@/lib/types";
+import { ApproveButton } from "./ApproveButton";
 
 type StationState = "done" | "hold" | "stop" | "idle";
 
@@ -14,7 +16,7 @@ type Props = {
   names: Map<string, string>;
   now: number;
   run: boolean;
-  onApprove: (id: string) => Promise<string | null>;
+  onApprove: (id: string, proof: ApprovalProof) => Promise<string | null>;
 };
 
 // One payment: the outcome first, a strip showing where it got to, then each step
@@ -400,10 +402,15 @@ function ownerTitle(status: Status): string {
   }
 }
 
-function Owner({ decision, status, onApprove }: { decision: Decision; status: Status; onApprove: (id: string) => Promise<string | null> }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+function Owner({
+  decision,
+  status,
+  onApprove,
+}: {
+  decision: Decision;
+  status: Status;
+  onApprove: (id: string, proof: ApprovalProof) => Promise<string | null>;
+}) {
   switch (status.kind) {
     case "allowed":
       return <p>Every rule passed, so Oversign signed without asking you.</p>;
@@ -420,19 +427,8 @@ function Owner({ decision, status, onApprove }: { decision: Decision; status: St
     case "held":
       return (
         <>
-          <p>Nothing is signed until you decide. Approving covers this one payment only.</p>
-          <button
-            className="button button-ink"
-            disabled={busy || !decision.payment}
-            onClick={async () => {
-              setBusy(true);
-              setError(await onApprove(decision.id));
-              setBusy(false);
-            }}
-          >
-            {busy ? "Approving" : "Approve this payment"}
-          </button>
-          {error && <p className="form-error" role="alert">{error}</p>}
+          <p>Nothing is signed until you decide. Your wallet signs the approval, and it covers this one payment only.</p>
+          <ApproveButton decision={decision} onApprove={onApprove} />
         </>
       );
   }

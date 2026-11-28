@@ -27,6 +27,10 @@ function requireEnv(name: string, hint: string): string {
 export const AGENT_TOKEN = () => requireEnv("OVERSIGN_AGENT_TOKEN", "Run: npm run setup:tokens");
 export const OWNER_TOKEN = () => requireEnv("OVERSIGN_OWNER_TOKEN", "Run: npm run setup:tokens");
 
+// The owner's wallet address. Approvals from the dashboard or phone count only when
+// this wallet signed them. Unset means no wallet approval is trusted yet.
+export const OWNER_WALLET = process.env.OVERSIGN_OWNER_WALLET?.trim() || undefined;
+
 // The secret key bypasses the database rules, so it lives only in this service.
 export const SUPABASE_URL = () => requireEnv("SUPABASE_URL", "Copy it from your Supabase project.");
 export const SUPABASE_SECRET_KEY = () => requireEnv("SUPABASE_SECRET_KEY", "Copy it from Project Settings, API Keys.");
