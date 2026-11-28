@@ -70,6 +70,18 @@ export function useOwnerWallet() {
   // Prefer the phone's wallet app when it is there.
   const preferred = wallets.find((item) => item.name === "Mobile Wallet Adapter") ?? wallets[0] ?? null;
 
+  // Restore a connection the wallet already approved, without opening the wallet app.
+  // Android can reload this page while the wallet app is in front, which loses it.
+  useEffect(() => {
+    if (!preferred || connection) return;
+    preferred.features["standard:connect"]
+      .connect({ silent: true })
+      .then(({ accounts }) => {
+        if (accounts[0] && !connection) setConnection({ wallet: preferred, account: accounts[0] });
+      })
+      .catch(() => {});
+  }, [preferred]);
+
   // Called from a tap, because Android Chrome only opens the wallet app on a user gesture.
   const connect = useCallback(async () => {
     setError(null);
@@ -95,12 +107,23 @@ export function useOwnerWallet() {
         return null;
       }
       try {
-        const [output] = await wallet.features[SolanaSignMessage].signMessage({
-          account,
-          message: new TextEncoder().encode(message),
-        });
+        // The wallet can lose its session while this page was in the background.
+        // Restore it from the saved approval first, which needs no wallet screen.
+        if (wallet.accounts.length === 0) {
+          const { accounts } = await wallet.features["standard:connect"].connect({ silent: true });
+          if (!accounts[0]) {
+            setConnection(null);
+            throw new Error("your wallet session ended. Tap Connect your wallet, then approve");
+          }
+        }
+        const bytes = new TextEncoder().encode(message);
+        const [output] = await wallet.features[SolanaSignMessage].signMessage({ account, message: bytes });
         if (!output) throw new Error("The wallet returned no signature.");
-        return { signature: output.signature, signedMessage: output.signedMessage };
+        // Some wallets return the message with the signature appended. Keep just the message.
+        const signed = output.signedMessage;
+        const signedMessage =
+          signed.length === bytes.length + 64 && bytes.every((byte, index) => signed[index] === byte) ? bytes : signed;
+        return { signature: output.signature, signedMessage };
       } catch (cause) {
         setError(`The wallet didn't sign: ${(cause as Error).message}`);
         return null;
